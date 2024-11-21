@@ -18,7 +18,7 @@ def fetch_new_topics():
     chrome_options.add_argument('--no-sandbox')  # サンドボックスを無効にする（Renderで必要）
     chrome_options.add_argument('--disable-dev-shm-usage')  # 一部のシステムで必要
     # WebDriverを起動
-    service = Service(ChromeDriverManager().install())
+    service = Service(ChromeDriverManager(driver_version="131.0.6778.85").install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
 
     try:
