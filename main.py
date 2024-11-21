@@ -19,7 +19,7 @@ BASE_URL = "https://www.hoyolab.com/circles/2/27/official?page_type=27&page_sort
 CHANNEL_ID = []   # 送信先のチャンネルID格納配列
 
 # Seleniumを使用して新しいトピックを取得する関数
-def fetch_new_topics():
+async def fetch_new_topics():
     # Chromeのオプションを設定
     chrome_binary_path = "/opt/render/project/.render/chrome/opt/google/chrome/chrome" 
     chrome_options = webdriver.ChromeOptions()
@@ -32,7 +32,6 @@ def fetch_new_topics():
     service = Service(ChromeDriverManager(driver_version="131.0.6778.85").install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
 
-
     """
     # WebDriverを起動
     service = Service(ChromeDriverManager().install())
@@ -42,8 +41,8 @@ def fetch_new_topics():
         # HOYOLABのページを開く
         driver.get(BASE_URL)
 
-        # 要素がロードされるまで待機（最大10秒）
-        wait = WebDriverWait(driver, 100)
+        # 要素がロードされるまで待機（最大20秒）
+        wait = WebDriverWait(driver, 20)
         wait.until(EC.presence_of_element_located(
             (By.XPATH, '//*[@id="__layout"]/div/div[3]/div[2]/div[1]/div/div[1]/div[2]/div/div/div/div[2]/div[1]/div[1]/a/div/div[1]/h3')
         ))
@@ -89,7 +88,7 @@ async def on_ready():
 
     # 定期的にトピックをチェック
     while True:
-        topics = fetch_new_topics()  # トピックを取得
+        topics = await fetch_new_topics()  # トピックを取得
         print(CHANNEL_ID)
 
         for topic in topics:

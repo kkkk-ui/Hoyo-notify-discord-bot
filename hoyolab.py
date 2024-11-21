@@ -28,7 +28,7 @@ def fetch_new_topics():
         # 要素がロードされるまで待機（最大10秒）
         wait = WebDriverWait(driver, 10)
         wait.until(EC.presence_of_element_located(
-            (By.XPATH, '//*[@id="__layout"]/div/div[3]/div[2]/div[1]/div/div[1]/div[2]/div/div/div/div[2]/div[1]/div[1]/a/div/div[1]/h3')
+            (By.XPATH, '//*[@id="__layout"]/div/div[3]/div[2]/div[1]/div/div[1]/div[2]/div/div/div/div[2]/div[1]/div[1]/a/div/div[1]/h3/span[2]')
         ))
 
         # XPathで特定のトピック要素を探す
