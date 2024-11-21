@@ -41,8 +41,8 @@ async def fetch_new_topics():
         # HOYOLABのページを開く
         driver.get(BASE_URL)
 
-        # 要素がロードされるまで待機（最大20秒）
-        wait = WebDriverWait(driver, 20)
+        # 要素がロードされるまで待機（最大60秒）
+        wait = WebDriverWait(driver, 60)
         wait.until(EC.presence_of_element_located(
             (By.XPATH, '//*[@id="__layout"]/div/div[3]/div[2]/div[1]/div/div[1]/div[2]/div/div/div/div[2]/div[1]/div[1]/a/div/div[1]/h3')
         ))
