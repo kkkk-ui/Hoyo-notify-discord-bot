@@ -36,6 +36,7 @@ async def fetch_new_topics():
     service = Service(ChromeDriverManager(driver_version="131.0.6778.85").install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.delete_all_cookies()
+    driver.execute_script('document.documentElement.lang = "ja"')
 
     """
     # WebDriverを起動
