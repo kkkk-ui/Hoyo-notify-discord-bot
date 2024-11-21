@@ -9,6 +9,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 import config
+import keep_alive
 
 # HOYOLABのURL
 BASE_URL = "https://www.hoyolab.com/circles/2/27/official?page_type=27&page_sort=news"
@@ -88,5 +89,6 @@ async def on_ready():
 
 
 # Bot起動
+keep_alive()
 client.run(config.DISCORD_TOKEN)
 
