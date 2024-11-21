@@ -31,7 +31,7 @@ def fetch_new_topics():
     # Google Chromeのインストール先パスを指定
     chrome_options.binary_location = "/usr/bin/google-chrome-stable"
     # ChromeDriverのパスを指定してWebDriverを起動
-    service = Service("/usr/local/bin/chromedriver")  # chromedriverのパスを指定
+    service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
     """
     # WebDriverを起動
@@ -69,7 +69,7 @@ def fetch_new_topics():
     finally:
         # ドライバを閉じる
         driver.quit()
-        
+
         # Xvfbを停止
         display.stop()
 
