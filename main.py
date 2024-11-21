@@ -147,7 +147,6 @@ async def on_ready():
     # 定期的にトピックをチェック
     while True:
         topics = await fetch_new_topics()  # トピックを取得
-        img_url = await fetch_img()
         print(CHANNEL_ID)
 
         for topic in topics:
@@ -156,6 +155,8 @@ async def on_ready():
                     channel = client.get_channel(channelid)
                     print(f"ここに送信 >> チャンネル名: {channel.name}, チャンネルID: {channel.id}")
                     # 新しいトピックを送信
+                    await channel.send(f"新しいトピック: {topic['title']}")
+                    img_url = await fetch_img()
                     embed = discord.Embed(title="新着トピック",description=f"{topic['title']} - {topic['link']}")
                     embed.set_image(url=img_url)
                     await channel.send(embed=embed)
