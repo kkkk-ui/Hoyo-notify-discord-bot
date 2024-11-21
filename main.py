@@ -146,6 +146,18 @@ async def on_ready():
 
     # 定期的にトピックをチェック
     while True:
+        img_url = await fetch_img()
+        if img_url not in seen_links:
+            for channelid in CHANNEL_ID:
+                channel = client.get_channel(channelid)
+                print(f"ここに送信 >> チャンネル名: {channel.name}, チャンネルID: {channel.id}")
+                # 新しいトピックを送信
+                   
+                embed = discord.Embed(title="新着トピック",description="")
+                embed.set_image(url=img_url)
+                await channel.send(embed=embed)
+                seen_links.add(img_url)
+        """
         topics = await fetch_new_topics()  # トピックを取得
         print(CHANNEL_ID)
 
@@ -162,6 +174,7 @@ async def on_ready():
                     await channel.send(embed=embed)
                     #await channel.send(f"新しいトピック: {topic['title']} - {topic['link']}")
                     seen_links.add(topic["link"])
+        """
 
         print("待機中…")
         # 10分間隔でチェック
