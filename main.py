@@ -26,6 +26,7 @@ async def fetch_new_topics():
     chrome_options.add_argument('--headless')  # Headlessモードを有効にする
     chrome_options.add_argument('--no-sandbox')  # サンドボックスを無効にする（Renderで必要）
     chrome_options.add_argument('--disable-dev-shm-usage')  # 一部のシステムで必要
+    chrome_options.add_argument('--lang=ja')
     chrome_options.add_argument('--disable-gpu')  # GPUを無効化
     chrome_options.add_argument('--window-size=1920,1080')  # デフォルトの解像度設定
     chrome_options.binary_location = chrome_binary_path 
@@ -99,7 +100,6 @@ async def on_ready():
                     channel = client.get_channel(channelid)
                     print(f"ここに送信 >> チャンネル名: {channel.name}, チャンネルID: {channel.id}")
                     # 新しいトピックを送信
-                    await channel.send(topic['title'])
                     await channel.send(f"新しいトピック: {topic['title']} - {topic['link']}")
                     seen_links.add(topic["link"])
 
