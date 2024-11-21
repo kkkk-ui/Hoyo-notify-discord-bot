@@ -29,7 +29,7 @@ def fetch_new_topics():
     chrome_options.binary_location = chrome_binary_path 
 
     # ChromeDriverのパスを指定してWebDriverを起動
-    service = Service(ChromeDriverManager(version="131.0.6778.85").install())
+    service = Service(ChromeDriverManager(driver_version="131.0.6778.85").install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
 
 
