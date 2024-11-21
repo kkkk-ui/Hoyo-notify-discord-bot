@@ -11,6 +11,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 import config
 import keep_alive
 from selenium.webdriver.chrome.options import Options
+from pyvirtualdisplay import Display
 
 # HOYOLABのURL
 BASE_URL = "https://www.hoyolab.com/circles/2/27/official?page_type=27&page_sort=news"
@@ -18,6 +19,10 @@ CHANNEL_ID = []   # 送信先のチャンネルID格納配列
 
 # Seleniumを使用して新しいトピックを取得する関数
 def fetch_new_topics():
+    # Xvfb（仮想ディスプレイ）を起動
+    display = Display(visible=0, size=(1024, 768))
+    display.start()
+
     # Chromeのオプションを設定
     chrome_options = Options()
     chrome_options.add_argument('--headless')  # Headlessモードを有効にする
@@ -64,6 +69,9 @@ def fetch_new_topics():
     finally:
         # ドライバを閉じる
         driver.quit()
+        
+        # Xvfbを停止
+        display.stop()
 
 # Discordクライアントの設定
 intents = discord.Intents.default()

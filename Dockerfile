@@ -11,5 +11,6 @@ RUN apt-get update -y && \
     unzip chromedriver_linux64.zip && \
     mv chromedriver /usr/local/bin/ && \
     chmod +x /usr/local/bin/chromedriver
+RUN apt-get install -y xvfb
 COPY . /discord_bot
 CMD python main.py
