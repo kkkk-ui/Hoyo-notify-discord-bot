@@ -5,6 +5,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.options import Options
 import time
 
 # HOYOLABのURL
@@ -12,9 +13,13 @@ BASE_URL = "https://www.hoyolab.com/circles/2/27/official?page_type=27&page_sort
 
 # Seleniumを使用して新しいトピックを取得する関数
 def fetch_new_topics():
+    chrome_options = webdriver.ChromeOptions()
+    chrome_options.add_argument('--headless')  # Headlessモードを有効にする
+    chrome_options.add_argument('--no-sandbox')  # サンドボックスを無効にする（Renderで必要）
+    chrome_options.add_argument('--disable-dev-shm-usage')  # 一部のシステムで必要
     # WebDriverを起動
     service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service)
+    driver = webdriver.Chrome(service=service, options=chrome_options)
 
     try:
         # HOYOLABのページを開く
@@ -23,7 +28,7 @@ def fetch_new_topics():
         # 要素がロードされるまで待機（最大10秒）
         wait = WebDriverWait(driver, 10)
         wait.until(EC.presence_of_element_located(
-            (By.XPATH, '//*[@id="__layout"]/div/div[3]/div[2]/div[1]/div/div[1]/div[2]/div/div/div/div[2]/div[1]/div[1]/a/div/div[1]/h3/span[2]')
+            (By.XPATH, '//*[@id="__layout"]/div/div[3]/div[2]/div[1]/div/div[1]/div[2]/div/div/div/div[2]/div[1]/div[1]/a/div/div[1]/h3')
         ))
 
         # XPathで特定のトピック要素を探す
