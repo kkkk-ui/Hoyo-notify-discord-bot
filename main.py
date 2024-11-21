@@ -10,6 +10,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 import config
 import keep_alive
+from selenium.webdriver.chrome.options import Options
 
 # HOYOLABのURL
 BASE_URL = "https://www.hoyolab.com/circles/2/27/official?page_type=27&page_sort=news"
@@ -17,10 +18,20 @@ CHANNEL_ID = []   # 送信先のチャンネルID格納配列
 
 # Seleniumを使用して新しいトピックを取得する関数
 def fetch_new_topics():
+    # Chromeのオプションを設定
+    chrome_options = Options()
+    chrome_options.add_argument('--headless')  # Headlessモードを有効にする
+    chrome_options.add_argument('--no-sandbox')  # サンドボックスを無効にする（Renderで必要）
+    chrome_options.add_argument('--disable-dev-shm-usage')  # 一部のシステムで必要
+
+    # ChromeDriverのパスを指定してWebDriverを起動
+    service = Service("/usr/local/bin/chromedriver")  # chromedriverのパスを指定
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    """
     # WebDriverを起動
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service)
-
+    """
     try:
         # HOYOLABのページを開く
         driver.get(BASE_URL)
