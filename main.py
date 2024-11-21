@@ -89,6 +89,5 @@ async def on_ready():
 
 
 # Bot起動
-keep_alive()
 client.run(config.DISCORD_TOKEN)
 
