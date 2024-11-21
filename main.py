@@ -21,14 +21,14 @@ CHANNEL_ID = []   # 送信先のチャンネルID格納配列
 # Seleniumを使用して新しいトピックを取得する関数
 async def fetch_new_topics():
     # Chromeのオプションを設定
-    #chrome_binary_path = "/opt/render/project/.render/chrome/opt/google/chrome/chrome" 
+    chrome_binary_path = "/opt/render/project/.render/chrome/opt/google/chrome/chrome" 
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument('--headless')  # Headlessモードを有効にする
     chrome_options.add_argument('--no-sandbox')  # サンドボックスを無効にする（Renderで必要）
     chrome_options.add_argument('--disable-dev-shm-usage')  # 一部のシステムで必要
     chrome_options.add_argument('--disable-gpu')  # GPUを無効化
     chrome_options.add_argument('--window-size=1920,1080')  # デフォルトの解像度設定
-    #chrome_options.binary_location = chrome_binary_path 
+    chrome_options.binary_location = chrome_binary_path 
 
     # ChromeDriverのパスを指定してWebDriverを起動
     service = Service(ChromeDriverManager(driver_version="131.0.6778.85").install())
@@ -109,6 +109,6 @@ async def on_ready():
 
 
 # Bot起動
-#keep_alive.keep_alive()
+keep_alive.keep_alive()
 client.run(config.DISCORD_TOKEN)
 
