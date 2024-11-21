@@ -9,9 +9,11 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 import config
+import re
 
 import keep_alive
 from selenium.webdriver.chrome.options import Options
+
 
 
 # HOYOLABのURL
@@ -58,6 +60,13 @@ async def fetch_new_topics():
             By.XPATH, '/html/body/div[1]/div/div/div[3]/div[2]/div[1]/div/div[1]/div[2]/div/div/div/div[2]/div[1]/div[1]/a/div/div[1]/h3'
         )
 
+        # 要素を取得
+        element = driver.find_element(By.CSS_SELECTOR, "div.mhy-news-card__img")
+
+        # style属性からURLを取得
+        style = element.get_attribute("style")
+        img_url = re.search(r'url\((.*?)\)', style).group(1)
+
         # トピックデータを収集
         new_topics = []
         for element in topic_elements:
@@ -70,7 +79,7 @@ async def fetch_new_topics():
             except Exception as e:
                 print(f"要素の解析中にエラーが発生: {e}")
         
-        return new_topics
+        return new_topics, img_url
     finally:
         # ドライバを閉じる
         driver.quit()
@@ -94,7 +103,7 @@ async def on_ready():
 
     # 定期的にトピックをチェック
     while True:
-        topics = await fetch_new_topics()  # トピックを取得
+        topics, img_url = await fetch_new_topics()  # トピックを取得
         print(CHANNEL_ID)
 
         for topic in topics:
@@ -103,7 +112,10 @@ async def on_ready():
                     channel = client.get_channel(channelid)
                     print(f"ここに送信 >> チャンネル名: {channel.name}, チャンネルID: {channel.id}")
                     # 新しいトピックを送信
-                    await channel.send(f"新しいトピック: {topic['title']} - {topic['link']}")
+                    embed = discord.Embed(title="新着トピック",description=f"{topic['title']} - {topic['link']}")
+                    embed.set_image(url=img_url)
+                    await channel.send(embed=embed)
+                    #await channel.send(f"新しいトピック: {topic['title']} - {topic['link']}")
                     seen_links.add(topic["link"])
 
         print("待機中…")

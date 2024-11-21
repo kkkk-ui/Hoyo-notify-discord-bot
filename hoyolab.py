@@ -7,6 +7,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 import time
+import re
 
 # HOYOLABのURL
 BASE_URL = "https://www.hoyolab.com/circles/2/27/official?page_type=27&page_sort=news"
@@ -42,6 +43,15 @@ def fetch_new_topics():
             By.XPATH, '/html/body/div[1]/div/div/div[3]/div[2]/div[1]/div/div[1]/div[2]/div/div/div/div[2]/div[1]/div[1]/a/div/div[1]/h3'
         )
         #'//*[@id="__layout"]/div/div[3]/div[2]/div[1]/div/div[1]/div[2]/div/div/div/div[2]/div/div/a/div/div[1]/h3'
+
+        # 要素を取得
+        element = driver.find_element(By.CSS_SELECTOR, "div.mhy-news-card__img")
+
+        # style属性からURLを取得
+        style = element.get_attribute("style")
+        url = re.search(r'url\((.*?)\)', style).group(1)
+
+        print(url)
 
         # トピックデータを収集
         new_topics = []
