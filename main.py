@@ -23,7 +23,8 @@ def fetch_new_topics():
     chrome_options.add_argument('--headless')  # Headlessモードを有効にする
     chrome_options.add_argument('--no-sandbox')  # サンドボックスを無効にする（Renderで必要）
     chrome_options.add_argument('--disable-dev-shm-usage')  # 一部のシステムで必要
-
+    # Google Chromeのインストール先パスを指定
+    chrome_options.binary_location = "/usr/bin/google-chrome-stable"
     # ChromeDriverのパスを指定してWebDriverを起動
     service = Service("/usr/local/bin/chromedriver")  # chromedriverのパスを指定
     driver = webdriver.Chrome(service=service, options=chrome_options)
