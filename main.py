@@ -75,14 +75,54 @@ async def fetch_new_topics():
         for element in topic_elements:
             try:
                 # タイトルを取得
-                #title = element.text
+                title = element.text
                 # 親要素からリンクを取得
                 link = element.find_element(By.XPATH, "../../..").get_attribute('href')
-                new_topics.append({'title': img_url, 'link': link})
+                new_topics.append({'title': title, 'link': link})
             except Exception as e:
                 print(f"要素の解析中にエラーが発生: {e}")
         
         return new_topics
+    finally:
+        # ドライバを閉じる
+        driver.quit()
+
+async def fetch_img():
+    # Chromeのオプションを設定
+    chrome_binary_path = "/opt/render/project/.render/chrome/opt/google/chrome/chrome" 
+    chrome_options = webdriver.ChromeOptions()
+    chrome_options.add_argument('--headless')  # Headlessモードを有効にする
+    chrome_options.add_argument('--no-sandbox')  # サンドボックスを無効にする（Renderで必要）
+    chrome_options.add_argument('--disable-dev-shm-usage')  # 一部のシステムで必要
+    chrome_options.add_argument('--lang=ja')
+    chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
+    chrome_options.add_argument('--disable-gpu')  # GPUを無効化
+    chrome_options.add_argument('--window-size=1920,1080')  # デフォルトの解像度設定
+    chrome_options.binary_location = chrome_binary_path 
+
+    # ChromeDriverのパスを指定してWebDriverを起動
+    service = Service(ChromeDriverManager(driver_version="131.0.6778.85").install())
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    driver.delete_all_cookies()
+    driver.execute_script('document.documentElement.lang = "ja"')
+
+    """
+    # WebDriverを起動
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service)
+    """
+    try:
+        # HOYOLABのページを開く
+        driver.get(BASE_URL)
+
+        # 要素を取得
+        element = driver.find_element(By.CSS_SELECTOR, "div.mhy-news-card__img")
+
+        # style属性からURLを取得
+        style = element.get_attribute("style")
+        img_url = re.search(r'url\((.*?)\)', style).group(1)
+        
+        return img_url
     finally:
         # ドライバを閉じる
         driver.quit()
@@ -107,6 +147,7 @@ async def on_ready():
     # 定期的にトピックをチェック
     while True:
         topics = await fetch_new_topics()  # トピックを取得
+        img_url = await fetch_img()
         print(CHANNEL_ID)
 
         for topic in topics:
@@ -115,8 +156,8 @@ async def on_ready():
                     channel = client.get_channel(channelid)
                     print(f"ここに送信 >> チャンネル名: {channel.name}, チャンネルID: {channel.id}")
                     # 新しいトピックを送信
-                    embed = discord.Embed(title="新着トピック",description=f"{topic['link']}")
-                    embed.set_image(url=topic['title'])
+                    embed = discord.Embed(title="新着トピック",description=f"{topic['title']} - {topic['link']}")
+                    embed.set_image(url=img_url)
                     await channel.send(embed=embed)
                     #await channel.send(f"新しいトピック: {topic['title']} - {topic['link']}")
                     seen_links.add(topic["link"])
