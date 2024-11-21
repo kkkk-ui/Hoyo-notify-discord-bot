@@ -1,5 +1,4 @@
 import discord
-from discord import gateway
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
@@ -10,17 +9,13 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 import config
-import re
 
 import keep_alive
 from selenium.webdriver.chrome.options import Options
 
 
-# タイムアウト設定
-gateway.HEARTBEAT_TIMEOUT = 60  # 60秒に設定（デフォルトは10秒）
-
 # HOYOLABのURL
-BASE_URL = "https://www.hoyolab.com/circles/2/27/official?page_type=27&page_sort=news"
+BASE_URL = "https://www.hoyolab.com/circles/2/27/official?page_type=27&page_sort=news?language=ja_JP"
 CHANNEL_ID = []   # 送信先のチャンネルID格納配列
 
 # Seleniumを使用して新しいトピックを取得する関数
@@ -29,9 +24,9 @@ async def fetch_new_topics():
     chrome_binary_path = "/opt/render/project/.render/chrome/opt/google/chrome/chrome" 
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument('--headless')  # Headlessモードを有効にする
+    chrome_options.add_argument('--lang=ja')
     chrome_options.add_argument('--no-sandbox')  # サンドボックスを無効にする（Renderで必要）
     chrome_options.add_argument('--disable-dev-shm-usage')  # 一部のシステムで必要
-    chrome_options.add_argument('--lang=ja')
     chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
     chrome_options.add_argument('--disable-gpu')  # GPUを無効化
     chrome_options.add_argument('--window-size=1920,1080')  # デフォルトの解像度設定
@@ -63,13 +58,6 @@ async def fetch_new_topics():
             By.XPATH, '/html/body/div[1]/div/div/div[3]/div[2]/div[1]/div/div[1]/div[2]/div/div/div/div[2]/div[1]/div[1]/a/div/div[1]/h3'
         )
 
-        # 要素を取得
-        element = driver.find_element(By.CSS_SELECTOR, "div.mhy-news-card__img")
-
-        # style属性からURLを取得
-        style = element.get_attribute("style")
-        img_url = re.search(r'url\((.*?)\)', style).group(1)
-
         # トピックデータを収集
         new_topics = []
         for element in topic_elements:
@@ -83,46 +71,6 @@ async def fetch_new_topics():
                 print(f"要素の解析中にエラーが発生: {e}")
         
         return new_topics
-    finally:
-        # ドライバを閉じる
-        driver.quit()
-
-async def fetch_img():
-    # Chromeのオプションを設定
-    chrome_binary_path = "/opt/render/project/.render/chrome/opt/google/chrome/chrome" 
-    chrome_options = webdriver.ChromeOptions()
-    chrome_options.add_argument('--headless')  # Headlessモードを有効にする
-    chrome_options.add_argument('--no-sandbox')  # サンドボックスを無効にする（Renderで必要）
-    chrome_options.add_argument('--disable-dev-shm-usage')  # 一部のシステムで必要
-    chrome_options.add_argument('--lang=ja')
-    chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
-    chrome_options.add_argument('--disable-gpu')  # GPUを無効化
-    chrome_options.add_argument('--window-size=1920,1080')  # デフォルトの解像度設定
-    chrome_options.binary_location = chrome_binary_path 
-
-    # ChromeDriverのパスを指定してWebDriverを起動
-    service = Service(ChromeDriverManager(driver_version="131.0.6778.85").install())
-    driver = webdriver.Chrome(service=service, options=chrome_options)
-    driver.delete_all_cookies()
-    driver.execute_script('document.documentElement.lang = "ja"')
-
-    """
-    # WebDriverを起動
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service)
-    """
-    try:
-        # HOYOLABのページを開く
-        driver.get(BASE_URL)
-
-        # 要素を取得
-        element = driver.find_element(By.CSS_SELECTOR, "div.mhy-news-card__img")
-
-        # style属性からURLを取得
-        style = element.get_attribute("style")
-        img_url = re.search(r'url\((.*?)\)', style).group(1)
-        
-        return img_url
     finally:
         # ドライバを閉じる
         driver.quit()
@@ -146,18 +94,6 @@ async def on_ready():
 
     # 定期的にトピックをチェック
     while True:
-        img_url = await fetch_img()
-        if img_url not in seen_links:
-            for channelid in CHANNEL_ID:
-                channel = client.get_channel(channelid)
-                print(f"ここに送信 >> チャンネル名: {channel.name}, チャンネルID: {channel.id}")
-                # 新しいトピックを送信
-                   
-                embed = discord.Embed(title="新着トピック",description="")
-                embed.set_image(url=img_url)
-                await channel.send(embed=embed)
-                seen_links.add(img_url)
-        """
         topics = await fetch_new_topics()  # トピックを取得
         print(CHANNEL_ID)
 
@@ -167,14 +103,8 @@ async def on_ready():
                     channel = client.get_channel(channelid)
                     print(f"ここに送信 >> チャンネル名: {channel.name}, チャンネルID: {channel.id}")
                     # 新しいトピックを送信
-                    await channel.send(f"新しいトピック: {topic['title']}")
-                    img_url = await fetch_img()
-                    embed = discord.Embed(title="新着トピック",description=f"{topic['title']} - {topic['link']}")
-                    embed.set_image(url=img_url)
-                    await channel.send(embed=embed)
-                    #await channel.send(f"新しいトピック: {topic['title']} - {topic['link']}")
+                    await channel.send(f"新しいトピック: {topic['title']} - {topic['link']}")
                     seen_links.add(topic["link"])
-        """
 
         print("待機中…")
         # 10分間隔でチェック
