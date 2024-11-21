@@ -1,4 +1,5 @@
 import discord
+from discord import gateway
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
@@ -15,6 +16,8 @@ import keep_alive
 from selenium.webdriver.chrome.options import Options
 
 
+# タイムアウト設定
+gateway.HEARTBEAT_TIMEOUT = 60  # 60秒に設定（デフォルトは10秒）
 
 # HOYOLABのURL
 BASE_URL = "https://www.hoyolab.com/circles/2/27/official?page_type=27&page_sort=news"
