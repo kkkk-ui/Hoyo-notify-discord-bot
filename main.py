@@ -15,7 +15,7 @@ from selenium.webdriver.chrome.options import Options
 
 
 # HOYOLABのURL
-BASE_URL = "https://www.hoyolab.com/circles/2/27/official?page_type=27&page_sort=news?language=ja_JP"
+BASE_URL = "https://www.hoyolab.com/circles/2/27/official?page_type=27&page_sort=news?lang=ja_JP"
 CHANNEL_ID = []   # 送信先のチャンネルID格納配列
 
 # Seleniumを使用して新しいトピックを取得する関数
@@ -27,7 +27,6 @@ async def fetch_new_topics():
     chrome_options.add_argument('--lang=ja-JP')
     chrome_options.add_argument('--no-sandbox')  # サンドボックスを無効にする（Renderで必要）
     chrome_options.add_argument('--disable-dev-shm-usage')  # 一部のシステムで必要
-    chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
     chrome_options.add_argument('--disable-gpu')  # GPUを無効化
     chrome_options.add_argument('--window-size=1920,1080')  # デフォルトの解像度設定
     chrome_options.binary_location = chrome_binary_path 
