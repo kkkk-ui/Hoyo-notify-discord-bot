@@ -23,8 +23,8 @@ async def fetch_new_topics():
     # Chromeのオプションを設定
     chrome_binary_path = "/opt/render/project/.render/chrome/opt/google/chrome/chrome" 
     chrome_options = webdriver.ChromeOptions()
-    chrome_options.add_argument('--headless')  # Headlessモードを有効にする
-    chrome_options.add_argument('--lang=ja')
+    chrome_options.add_argument('--headless=new')  # Headlessモードを有効にする
+    chrome_options.add_argument('--lang=ja-JP')
     chrome_options.add_argument('--no-sandbox')  # サンドボックスを無効にする（Renderで必要）
     chrome_options.add_argument('--disable-dev-shm-usage')  # 一部のシステムで必要
     chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
@@ -103,12 +103,12 @@ async def on_ready():
                     channel = client.get_channel(channelid)
                     print(f"ここに送信 >> チャンネル名: {channel.name}, チャンネルID: {channel.id}")
                     # 新しいトピックを送信
-                    await channel.send(f"新しいトピック: {topic['title']} - {topic['link']}")
+                    await channel.send(f"新着トピック: {topic['title']} - {topic['link']}")
                     seen_links.add(topic["link"])
 
         print("待機中…")
-        # 10分間隔でチェック
-        await asyncio.sleep(60)
+       
+        await asyncio.sleep(5)
 
 
 # Bot起動
