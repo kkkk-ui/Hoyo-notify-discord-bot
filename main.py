@@ -17,70 +17,53 @@ from selenium.webdriver.chrome.options import Options
 # HOYOLABのURL
 BASE_URL = "https://www.hoyolab.com/circles/2/27/official?page_type=27&page_sort=news?lang=ja_JP"
 CHANNEL_ID = []   # 送信先のチャンネルID格納配列
-
-# Seleniumを使用して新しいトピックを取得する関数
-async def fetch_new_topics():
-    # Chromeのオプションを設定
-    chrome_binary_path = "/opt/render/project/.render/chrome/opt/google/chrome/chrome" 
-    chrome_options = webdriver.ChromeOptions()
-    chrome_options.add_argument('--headless=new')  # Headlessモードを有効にする
-    chrome_options.add_argument('--lang=ja-JP')
-    chrome_options.add_argument('--no-sandbox')  # サンドボックスを無効にする（Renderで必要）
-    chrome_options.add_argument('--disable-dev-shm-usage')  # 一部のシステムで必要
-    chrome_options.add_argument('--disable-gpu')  # GPUを無効化
-    chrome_options.add_argument('--window-size=1920,1080')  # デフォルトの解像度設定
-    chrome_options.binary_location = chrome_binary_path 
-
-    # ChromeDriverのパスを指定してWebDriverを起動
-    service = Service(ChromeDriverManager(driver_version="131.0.6778.85").install())
-    driver = webdriver.Chrome(service=service, options=chrome_options)
-    driver.delete_all_cookies()
-    driver.execute_script('document.documentElement.lang = "ja"')
-
-    """
-    # WebDriverを起動
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service)
-    """
-    try:
-        # HOYOLABのページを開く
-        driver.get(BASE_URL)
-
-        # 要素がロードされるまで待機（最大60秒）
-        wait = WebDriverWait(driver, 60)
-        wait.until(EC.presence_of_element_located(
-            (By.XPATH, '/html/body/div[1]/div/div/div[3]/div[2]/div[1]/div/div[1]/div[2]/div/div/div/div[2]/div[1]/div[1]/a/div/div[1]/h3')
-        ))
-
-        # XPathで特定のトピック要素を探す
-        topic_elements = driver.find_elements(
-            By.XPATH, '/html/body/div[1]/div/div/div[3]/div[2]/div[1]/div/div[1]/div[2]/div/div/div/div[2]/div[1]/div[1]/a/div/div[1]/h3'
-        )
-
-        # トピックデータを収集
-        new_topics = []
-        for element in topic_elements:
-            try:
-                # タイトルを取得
-                title = element.text
-                # 親要素からリンクを取得
-                link = element.find_element(By.XPATH, "../../..").get_attribute('href')
-                new_topics.append({'title': title, 'link': link})
-            except Exception as e:
-                print(f"要素の解析中にエラーが発生: {e}")
-        
-        return new_topics
-    finally:
-        # ドライバを閉じる
-        driver.quit()
-
-   
 # Discordクライアントの設定
 intents = discord.Intents.default()
 client = discord.Client(intents=intents)
-
 seen_links = set()  # 確認済みリンクを保持
 
+# Seleniumで新しいトピックを取得
+async def fetch_new_topics():
+    chrome_binary_path = "/opt/render/project/.render/chrome/opt/google/chrome/chrome"
+    chrome_options = Options()
+    chrome_options.add_argument("--headless=new")
+    chrome_options.add_argument("--lang=ja-JP")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.binary_location = chrome_binary_path
+
+    service = Service(ChromeDriverManager(driver_version="131.0.6778.85").install())
+    
+    # Selenium操作を別スレッドで実行
+    loop = asyncio.get_event_loop()
+    new_topics = await loop.run_in_executor(None, fetch_topics_with_selenium, service, chrome_options)
+    return new_topics
+
+def fetch_topics_with_selenium(service, chrome_options):
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    driver.delete_all_cookies()
+
+    try:
+        driver.get(BASE_URL)
+        wait = WebDriverWait(driver, 30)
+        wait.until(EC.presence_of_element_located(
+            (By.XPATH, '/html/body/div[1]/div/div/div[3]/div[2]/div[1]/div/div[1]/div[2]/div/div/div/div[2]/div[1]/div[1]/a/div/div[1]/h3')
+        ))
+        topic_elements = driver.find_elements(
+            By.XPATH, '/html/body/div[1]/div/div/div[3]/div[2]/div[1]/div/div[1]/div[2]/div/div/div/div[2]/div[1]/div[1]/a/div/div[1]/h3'
+        )
+        new_topics = []
+        for element in topic_elements:
+            title = element.text
+            link = element.find_element(By.XPATH, "../../..").get_attribute("href")
+            new_topics.append({"title": title, "link": link})
+        return new_topics
+    finally:
+        driver.quit()
+
+   
 @client.event
 async def on_ready():
     print(f"Bot {client.user} is now running!")
@@ -90,25 +73,25 @@ async def on_ready():
             if channel.name == "通知":
                 CHANNEL_ID.append(channel.id)
 
+    # トピック監視タスクを非同期で実行
+    asyncio.create_task(check_new_topics())
 
-    # 定期的にトピックをチェック
+async def check_new_topics():
+    global seen_links
     while True:
-        topics = await fetch_new_topics()  # トピックを取得
-        print(CHANNEL_ID)
-
-        for topic in topics:
-            if topic["link"] not in seen_links:
-                for channelid in CHANNEL_ID:
-                    channel = client.get_channel(channelid)
-                    print(f"ここに送信 >> チャンネル名: {channel.name}, チャンネルID: {channel.id}")
-                    # 新しいトピックを送信
-                    await channel.send(f"新着トピック: {topic['title']} - {topic['link']}")
-                    seen_links.add(topic["link"])
-
-        print("待機中…")
-       
-        await asyncio.sleep(5)
-
+        try:
+            topics = await fetch_new_topics()
+            for topic in topics:
+                if topic["link"] not in seen_links:
+                    for channel_id in CHANNEL_ID:
+                        channel = client.get_channel(channel_id)
+                        if channel:
+                            await channel.send(f"新着トピック: {topic['title']} - {topic['link']}")
+                            seen_links.add(topic["link"])
+            print("トピック確認完了、待機中...")
+        except Exception as e:
+            print(f"エラーが発生しました: {e}")
+        await asyncio.sleep(60)  # 60秒間隔でチェック
 
 # Bot起動
 keep_alive.keep_alive()
