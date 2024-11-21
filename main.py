@@ -21,10 +21,13 @@ CHANNEL_ID = []   # 送信先のチャンネルID格納配列
 # Seleniumを使用して新しいトピックを取得する関数
 def fetch_new_topics():
     # Chromeのオプションを設定
-    chrome_options = Options()
+    chrome_binary_path = "/opt/render/project/.render/chrome/opt/google/chrome/chrome" 
+    chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument('--headless')  # Headlessモードを有効にする
     chrome_options.add_argument('--no-sandbox')  # サンドボックスを無効にする（Renderで必要）
     chrome_options.add_argument('--disable-dev-shm-usage')  # 一部のシステムで必要
+    chrome_options.binary_location = chrome_binary_path 
+
     # ChromeDriverのパスを指定してWebDriverを起動
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
