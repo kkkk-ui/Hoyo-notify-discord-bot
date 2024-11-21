@@ -75,14 +75,14 @@ async def fetch_new_topics():
         for element in topic_elements:
             try:
                 # タイトルを取得
-                title = element.text
+                #title = element.text
                 # 親要素からリンクを取得
                 link = element.find_element(By.XPATH, "../../..").get_attribute('href')
-                new_topics.append({'title': title, 'link': link})
+                new_topics.append({'title': img_url, 'link': link})
             except Exception as e:
                 print(f"要素の解析中にエラーが発生: {e}")
         
-        return new_topics, img_url
+        return new_topics
     finally:
         # ドライバを閉じる
         driver.quit()
@@ -106,7 +106,7 @@ async def on_ready():
 
     # 定期的にトピックをチェック
     while True:
-        topics, img_url = await fetch_new_topics()  # トピックを取得
+        topics = await fetch_new_topics()  # トピックを取得
         print(CHANNEL_ID)
 
         for topic in topics:
@@ -115,8 +115,8 @@ async def on_ready():
                     channel = client.get_channel(channelid)
                     print(f"ここに送信 >> チャンネル名: {channel.name}, チャンネルID: {channel.id}")
                     # 新しいトピックを送信
-                    embed = discord.Embed(title="新着トピック",description=f"{topic['title']} - {topic['link']}")
-                    embed.set_image(url=img_url)
+                    embed = discord.Embed(title="新着トピック",description=f"{topic['link']}")
+                    embed.set_image(url=topic['title'])
                     await channel.send(embed=embed)
                     #await channel.send(f"新しいトピック: {topic['title']} - {topic['link']}")
                     seen_links.add(topic["link"])
