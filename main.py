@@ -9,9 +9,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 import config
+
 import keep_alive
 from selenium.webdriver.chrome.options import Options
-from pyvirtualdisplay import Display
+
 
 # HOYOLABのURL
 BASE_URL = "https://www.hoyolab.com/circles/2/27/official?page_type=27&page_sort=news"
@@ -19,20 +20,16 @@ CHANNEL_ID = []   # 送信先のチャンネルID格納配列
 
 # Seleniumを使用して新しいトピックを取得する関数
 def fetch_new_topics():
-    # Xvfb（仮想ディスプレイ）を起動
-    display = Display(visible=0, size=(1024, 768))
-    display.start()
-
     # Chromeのオプションを設定
     chrome_options = Options()
     chrome_options.add_argument('--headless')  # Headlessモードを有効にする
     chrome_options.add_argument('--no-sandbox')  # サンドボックスを無効にする（Renderで必要）
     chrome_options.add_argument('--disable-dev-shm-usage')  # 一部のシステムで必要
-    # Google Chromeのインストール先パスを指定
-    chrome_options.binary_location = "/usr/bin/google-chrome-stable"
     # ChromeDriverのパスを指定してWebDriverを起動
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
+
+
     """
     # WebDriverを起動
     service = Service(ChromeDriverManager().install())
@@ -70,9 +67,7 @@ def fetch_new_topics():
         # ドライバを閉じる
         driver.quit()
 
-        # Xvfbを停止
-        display.stop()
-
+   
 # Discordクライアントの設定
 intents = discord.Intents.default()
 client = discord.Client(intents=intents)
