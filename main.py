@@ -1,25 +1,25 @@
 import discord
+import asyncio
+import config
+import keep_alive
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
-import asyncio
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
-import config
-import re
-
-import keep_alive
 from selenium.webdriver.chrome.options import Options
-
 
 # HOYOLABのURL
 BASE_URL = "https://www.hoyolab.com/circles/2/27/official?page_type=27&page_sort=news?lang=ja_JP"
 CHANNEL_ID = []   # 送信先のチャンネルID格納配列
 # Discordクライアントの設定
 intents = discord.Intents.default()
+intents.guilds = True
+intents.guild_messages = True
+intents.messages = True
 client = discord.Client(intents=intents)
 seen_links = set()  # 確認済みリンクを保持
 
@@ -66,19 +66,20 @@ def fetch_topics_with_selenium(service, chrome_options):
         return new_topics
     finally:
         driver.quit()
-
    
 @client.event
 async def on_ready():
     print(f"Bot {client.user} is now running!")
+    # トピック監視タスクを非同期で実行
+    asyncio.create_task(check_new_topics())
+
+@client.event
+async def on_guild_join(guild):
     for guild in client.guilds:  # Botが属しているサーバーをすべてチェック
         for channel in guild.text_channels:  # サーバー内のテキストチャンネルをループ
             print(f"チャンネル名: {channel.name}, チャンネルID: {channel.id}")
             if channel.name == "通知":
                 CHANNEL_ID.append(channel.id)
-
-    # トピック監視タスクを非同期で実行
-    asyncio.create_task(check_new_topics())
 
 async def check_new_topics():
     global seen_links
@@ -111,7 +112,6 @@ async def on_message(message):
         answer = "どうされましたか？"
         print(answer)
         await message.channel.send(answer)
-
 
 # Bot起動
 keep_alive.keep_alive()
