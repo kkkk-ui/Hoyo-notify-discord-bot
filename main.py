@@ -9,6 +9,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 import config
+import re
 
 import keep_alive
 from selenium.webdriver.chrome.options import Options
@@ -51,15 +52,23 @@ def fetch_topics_with_selenium(service, chrome_options):
         wait.until(EC.presence_of_element_located(
             (By.XPATH, '/html/body/div[1]/div/div/div[3]/div[2]/div[1]/div/div[1]/div[2]/div/div/div/div[2]/div[1]/div[1]/a/div/div[1]/h3')
         ))
+
+        # 新着トピックを取得
         topic_elements = driver.find_elements(
             By.XPATH, '/html/body/div[1]/div/div/div[3]/div[2]/div[1]/div/div[1]/div[2]/div/div/div/div[2]/div[1]/div[1]/a/div/div[1]/h3'
         )
+
+        # 新着トピックの画像を取得
+        element = driver.find_element(By.CSS_SELECTOR, "div.mhy-news-card__img")
+        style = element.get_attribute("style")
+        url = re.search(r'url\((.*?)\)', style).group(1)
+
         new_topics = []
         for element in topic_elements:
             title = element.text
             link = element.find_element(By.XPATH, "../../..").get_attribute("href")
             new_topics.append({"title": title, "link": link})
-        return new_topics
+        return new_topics, url
     finally:
         driver.quit()
 
@@ -80,18 +89,35 @@ async def check_new_topics():
     global seen_links
     while True:
         try:
-            topics = await fetch_new_topics()
+            topics, url = await fetch_new_topics()
             for topic in topics:
                 if topic["link"] not in seen_links:
                     for channel_id in CHANNEL_ID:
                         channel = client.get_channel(channel_id)
                         if channel:
-                            await channel.send(f"新着トピック: {topic['title']} - {topic['link']}")
+                            embed = discord.Embed(title=topic['title'],description=topic['link'])
+                            embed.set_image(url=url)
+                            await channel.send(embed=embed)
+                            #await channel.send(f"新着トピック: {topic['title']} - {topic['link']}")
                             seen_links.add(topic["link"])
             print("トピック確認完了、待機中...")
         except Exception as e:
             print(f"エラーが発生しました: {e}")
         await asyncio.sleep(60)  # 60秒間隔でチェック
+
+# メッセージの検知
+@client.event
+async def on_message(message):
+    # 自身が送信したメッセージには反応しない
+    if message.author == client.user:
+        return
+
+    # ユーザーからのメンションを受け取った場合、あらかじめ用意された配列からランダムに返信を返す
+    if client.user in message.mentions:
+        answer = "どうされましたか？"
+        print(answer)
+        await message.channel.send(answer)
+
 
 # Bot起動
 keep_alive.keep_alive()
