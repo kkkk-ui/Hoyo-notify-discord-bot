@@ -84,7 +84,7 @@ async def check_new_topics():
     global seen_links
     while True:
         try:
-            topics, url = await fetch_new_topics()
+            topics = await fetch_new_topics()
             for topic in topics:
                 if topic["link"] not in seen_links:
                     for channel_id in CHANNEL_ID:
