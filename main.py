@@ -95,10 +95,10 @@ async def check_new_topics():
                     for channel_id in CHANNEL_ID:
                         channel = client.get_channel(channel_id)
                         if channel:
+                            await channel.send(f"新着トピック: {topic['title']} - {topic['link']}")
                             embed = discord.Embed(title=topic['title'],description=topic['link'])
-                            embed.set_image(url=url)
+                            embed.set_thumbnail(url=url)
                             await channel.send(embed=embed)
-                            #await channel.send(f"新着トピック: {topic['title']} - {topic['link']}")
                             seen_links.add(topic["link"])
             print("トピック確認完了、待機中...")
         except Exception as e:
