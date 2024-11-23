@@ -14,7 +14,7 @@ from selenium.webdriver.chrome.options import Options
 
 # HOYOLABのURL
 BASE_URL_GENSHIN = "https://www.hoyolab.com/circles/2/27/official?page_type=27&page_sort=news?lang=ja_JP"
-BASE_URL_STARRAIL = "https://www.hoyolab.com/circles/6/39/official?page_type=39&page_sort=news"
+BASE_URL_STARRAIL = "https://www.hoyolab.com/circles/6/39/official?page_type=39&page_sort=news?lang=ja_JP"
 CHANNEL_ID = []   # 送信先のチャンネルID格納配列
 # Discordクライアントの設定
 intents = discord.Intents.default()
