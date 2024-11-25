@@ -1,133 +1,196 @@
 import discord
+import asyncio
 import config
 import keep_alive
-import asyncio
-import traceback
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from selenium.webdriver.chrome.options import Options
 
 # HOYOLABのURL
 BASE_URL_GENSHIN = "https://www.hoyolab.com/circles/2/27/official?page_type=27&page_sort=news?lang=ja_JP"
 BASE_URL_STARRAIL = "https://www.hoyolab.com/circles/6/39/official?page_type=39&page_sort=news?lang=ja_JP"
-CHANNEL_ID = []  # 送信先のチャンネルID格納配列
-MAX_SEEN_LINKS = 100  # 履歴の最大保持数
-
-# グローバル変数
-driver = None
-g_seen_links = set()  # 原神の確認済みリンク
-s_seen_links = set()  # スターレイルの確認済みリンク
-
+CHANNEL_ID = []   # 送信先のチャンネルID格納配列
 # Discordクライアントの設定
 intents = discord.Intents.default()
+intents.guilds = True
+intents.guild_messages = True
 intents.messages = True
 client = discord.Client(intents=intents)
+#g_seen_links = set()  # 確認済みリンクを保持
+#s_seen_links = set()  # 確認済みリンクを保持
+seen_links = set()  # 確認済みリンクを保持
 
-# ドライバ初期化と終了
-def initialize_driver():
-    global driver
-    if driver is None:
-        chrome_options = Options()
-        chrome_options.add_argument("--headless=new")
-        chrome_options.add_argument("--lang=ja-JP")
-        chrome_options.add_argument("--no-sandbox")
-        chrome_options.add_argument("--disable-dev-shm-usage")
-        chrome_options.add_argument("--disable-gpu")
-        chrome_options.add_argument("--window-size=1920,1080")
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=chrome_options)
+# Seleniumで新しいトピックを取得
+async def fetch_new_genshin_topics():
+    chrome_binary_path = "/opt/render/project/.render/chrome/opt/google/chrome/chrome"
+    chrome_options = Options()
+    chrome_options.add_argument("--headless=new")
+    chrome_options.add_argument("--lang=ja-JP")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.binary_location = chrome_binary_path
 
-def close_driver():
-    global driver
-    if driver:
-        driver.quit()
-        driver = None
+    service = Service(ChromeDriverManager(driver_version="131.0.6778.85").install())
+    
+    # Selenium操作を別スレッドで実行
+    loop = asyncio.get_event_loop()
+    new_genshin_topics = await loop.run_in_executor(None, fetch_genshin_topics_with_selenium, service, chrome_options)
+    return new_genshin_topics
 
-# トピックを取得
-def fetch_topics(url):
-    initialize_driver()
-    global driver
-    driver.get(url)
-    wait = WebDriverWait(driver, 30)
-    wait.until(EC.presence_of_element_located(
-        (By.XPATH, '/html/body/div[1]/div/div/div[3]/div[2]/div[1]/div/div[1]/div[2]/div/div/div/div[2]/div[1]/div[1]/a/div/div[1]/h3')
-    ))
-    topic_elements = driver.find_elements(
-        By.XPATH, '/html/body/div[1]/div/div/div[3]/div[2]/div[1]/div/div[1]/div[2]/div/div/div/div[2]/div[1]/div[1]/a/div/div[1]/h3'
-    )
+async def fetch_new_starrail_topics():
+    chrome_binary_path = "/opt/render/project/.render/chrome/opt/google/chrome/chrome"
+    chrome_options = Options()
+    chrome_options.add_argument("--headless=new")
+    chrome_options.add_argument("--lang=ja-JP")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.binary_location = chrome_binary_path
 
-    topics = []
-    for element in topic_elements:
-        title = element.text
-        link = element.find_element(By.XPATH, "../../..").get_attribute("href")
-        topics.append({"title": title, "link": link})
-    return topics
+    service = Service(ChromeDriverManager(driver_version="131.0.6778.85").install())
+    
+    # Selenium操作を別スレッドで実行
+    loop = asyncio.get_event_loop()
+    new_starrail_topics = await loop.run_in_executor(None, fetch_starrail_topics_with_selenium, service, chrome_options)
+    return new_starrail_topics
 
-# トピックの監視
-async def check_new_topics():
-    global g_seen_links, s_seen_links
+def fetch_genshin_topics_with_selenium(service, chrome_options):
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    driver.delete_all_cookies()
+
     try:
-        genshin_topics = fetch_topics(BASE_URL_GENSHIN)
-        for topic in genshin_topics:
-            if topic["link"] not in g_seen_links:
-                for channel_id in CHANNEL_ID:
-                    channel = client.get_channel(channel_id)
-                    if channel:
-                        await channel.send("【原神】新着トピック")
-                        embed = discord.Embed(title=topic['title'], description=topic['link'])
-                        await channel.send(embed=embed)
-                g_seen_links.add(topic["link"])
+        driver.get(BASE_URL_GENSHIN)
+        wait = WebDriverWait(driver, 30)
+        wait.until(EC.presence_of_element_located(
+            (By.XPATH, '/html/body/div[1]/div/div/div[3]/div[2]/div[1]/div/div[1]/div[2]/div/div/div/div[2]/div[1]/div[1]/a/div/div[1]/h3')
+        ))
 
-        starrail_topics = fetch_topics(BASE_URL_STARRAIL)
-        for topic in starrail_topics:
-            if topic["link"] not in s_seen_links:
-                for channel_id in CHANNEL_ID:
-                    channel = client.get_channel(channel_id)
-                    if channel:
-                        await channel.send("【崩壊：スターレイル】新着トピック")
-                        embed = discord.Embed(title=topic['title'], description=topic['link'])
-                        await channel.send(embed=embed)
-                s_seen_links.add(topic["link"])
+        # 新着トピックを取得
+        topic_elements = driver.find_elements(
+            By.XPATH, '/html/body/div[1]/div/div/div[3]/div[2]/div[1]/div/div[1]/div[2]/div/div/div/div[2]/div[1]/div[1]/a/div/div[1]/h3'
+        )
 
-        # 古いリンクを削除
-        if len(g_seen_links) > MAX_SEEN_LINKS:
-            g_seen_links.pop()
-        if len(s_seen_links) > MAX_SEEN_LINKS:
-            s_seen_links.pop()
+        new_topics = []
+        for element in topic_elements:
+            title = element.text
+            link = element.find_element(By.XPATH, "../../..").get_attribute("href")
+            new_topics.append({"title": title, "link": link})
+        return new_topics
+    finally:
+        driver.quit()
 
-        print("トピック確認完了")
-    except Exception as e:
-        print(f"エラーが発生しました: {e}")
-        traceback.print_exc()
+def fetch_starrail_topics_with_selenium(service, chrome_options):
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    driver.delete_all_cookies()
 
-# Botの準備完了イベント
+    try:
+        driver.get(BASE_URL_STARRAIL)
+        wait = WebDriverWait(driver, 30)
+        wait.until(EC.presence_of_element_located(
+            (By.XPATH, '/html/body/div[1]/div/div/div[3]/div[2]/div[1]/div/div[1]/div[2]/div/div/div/div[2]/div[1]/div[1]/a/div/div[1]/h3')
+        ))
+
+        # 新着トピックを取得
+        topic_elements = driver.find_elements(
+            By.XPATH, '/html/body/div[1]/div/div/div[3]/div[2]/div[1]/div/div[1]/div[2]/div/div/div/div[2]/div[1]/div[1]/a/div/div[1]/h3'
+        )
+
+        new_topics = []
+        for element in topic_elements:
+            title = element.text
+            link = element.find_element(By.XPATH, "../../..").get_attribute("href")
+            new_topics.append({"title": title, "link": link})
+        return new_topics
+    finally:
+        driver.quit()
+   
 @client.event
 async def on_ready():
-    print(f"Bot {client.user} が起動しました！")
+    print(f"Bot {client.user} is now running!")
+    # トピック監視タスクを非同期で実行
+    asyncio.create_task(check_new_topics())
 
-# メッセージイベント
+@client.event
+async def on_guild_join(guild):
+    # サーバーのシステムメッセージチャンネルを取得
+    if guild.system_channel is not None:
+        try:
+            await guild.system_channel.send("サーバーに追加してくれてありがとう！よろしくお願いします！")
+        except discord.Forbidden:
+            print("メッセージを送信できませんでした。権限を確認してください。")
+    else:
+        print("システムチャンネルが設定されていません。")
+
+    for guild in client.guilds:  # Botが属しているサーバーをすべてチェック
+        for channel in guild.text_channels:  # サーバー内のテキストチャンネルをループ
+            print(f"チャンネル名: {channel.name}, チャンネルID: {channel.id}")
+            if channel.name == "通知" and channel.id not in CHANNEL_ID:
+                CHANNEL_ID.append(channel.id)
+
+async def check_new_topics():
+    #global g_seen_links
+    #global s_seen_links
+    global seen_links 
+    for guild in client.guilds:  # Botが属しているサーバーをすべてチェック
+        for channel in guild.text_channels:  # サーバー内のテキストチャンネルをループ
+            print(f"チャンネル名: {channel.name}, チャンネルID: {channel.id}")
+            if channel.name == "通知" and channel.id not in CHANNEL_ID:
+                CHANNEL_ID.append(channel.id)
+
+    while True:
+        try:
+            topics = await fetch_new_genshin_topics()
+            for topic in topics:
+                if topic["link"] not in seen_links:
+                    for channel_id in CHANNEL_ID:
+                        channel = client.get_channel(channel_id)
+                        if channel:
+                            await channel.send("【原神】新着トピック")
+                            embed = discord.Embed(title=topic['title'],description=topic['link'])
+                            await channel.send(embed=embed)
+                            seen_links.add(topic["link"])
+            topics = await fetch_new_starrail_topics()
+            for topic in topics:
+                if topic["link"] not in seen_links:
+                    for channel_id in CHANNEL_ID:
+                        channel = client.get_channel(channel_id)
+                        if channel:
+                            await channel.send("【崩壊：スターレイル】新着トピック")
+                            embed = discord.Embed(title=topic['title'],description=topic['link'])
+                            await channel.send(embed=embed)
+                            seen_links.add(topic["link"])
+            # リンクの履歴削除
+            if (len(seen_links) > 50):
+                seen_links.pop(0)
+
+            print("トピック確認完了、待機中...")
+        except Exception as e:
+            print(f"エラーが発生しました: {e}")
+        await asyncio.sleep(10800)  # 3時間間隔でチェック
+
+# メッセージの検知
 @client.event
 async def on_message(message):
+    # 自身が送信したメッセージには反応しない
     if message.author == client.user:
         return
+
+    # ユーザーからのメンションを受け取った場合、あらかじめ用意された配列からランダムに返信を返す
     if client.user in message.mentions:
-        await message.channel.send("【原神】と【崩壊：スターレイル】の最新情報をお届けします！")
+        answer = "【原神】と【崩壊：スターレイル】の最新情報をお届けしますね！！"
+        print(answer)
+        await message.channel.send(answer)
 
-# スケジューラーの設定
-scheduler = AsyncIOScheduler()
-scheduler.add_job(check_new_topics, 'interval', hours=3)  # 3時間ごとに実行
-scheduler.start()
-
-# プログラム終了時にドライバを閉じる
-import atexit
-atexit.register(close_driver)
-
-# Botを起動
+# Bot起動
 keep_alive.keep_alive()
 client.run(config.DISCORD_TOKEN)
 
