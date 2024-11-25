@@ -22,46 +22,50 @@ intents.guilds = True
 intents.guild_messages = True
 intents.messages = True
 client = discord.Client(intents=intents)
-seen_links = set()  # 確認済みリンクを保持
-
-def initialize_driver():
-    global driver
-    if driver is None:
-        chrome_binary_path = "/opt/render/project/.render/chrome/opt/google/chrome/chrome"
-        chrome_options = Options()
-        chrome_options.add_argument("--headless=new")
-        chrome_options.add_argument("--lang=ja-JP")
-        chrome_options.add_argument("--no-sandbox")
-        chrome_options.add_argument("--disable-dev-shm-usage")
-        chrome_options.add_argument("--disable-gpu")
-        chrome_options.add_argument("--window-size=1920,1080")
-        chrome_options.binary_location = chrome_binary_path
-        service = Service(ChromeDriverManager(driver_version="131.0.6778.85").install())
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-        driver.delete_all_cookies()
-
-def close_driver():
-    global driver
-    if driver is not None:
-        driver.quit()
-        driver = None
+g_seen_links = set()  # 確認済みリンクを保持
+s_seen_links = set()  # 確認済みリンクを保持
 
 # Seleniumで新しいトピックを取得
 async def fetch_new_genshin_topics():
-    initialize_driver()
+    chrome_binary_path = "/opt/render/project/.render/chrome/opt/google/chrome/chrome"
+    chrome_options = Options()
+    chrome_options.add_argument("--headless=new")
+    chrome_options.add_argument("--lang=ja-JP")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.binary_location = chrome_binary_path
+
+    service = Service(ChromeDriverManager(driver_version="131.0.6778.85").install())
+    
     # Selenium操作を別スレッドで実行
     loop = asyncio.get_event_loop()
-    new_genshin_topics = await loop.run_in_executor(None, fetch_genshin_topics_with_selenium)
+    new_genshin_topics = await loop.run_in_executor(None, fetch_genshin_topics_with_selenium, service, chrome_options)
     return new_genshin_topics
 
 async def fetch_new_starrail_topics():
-    initialize_driver()
+    chrome_binary_path = "/opt/render/project/.render/chrome/opt/google/chrome/chrome"
+    chrome_options = Options()
+    chrome_options.add_argument("--headless=new")
+    chrome_options.add_argument("--lang=ja-JP")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.binary_location = chrome_binary_path
+
+    service = Service(ChromeDriverManager(driver_version="131.0.6778.85").install())
+    
     # Selenium操作を別スレッドで実行
     loop = asyncio.get_event_loop()
-    new_starrail_topics = await loop.run_in_executor(None, fetch_starrail_topics_with_selenium)
+    new_starrail_topics = await loop.run_in_executor(None, fetch_starrail_topics_with_selenium, service, chrome_options)
     return new_starrail_topics
 
-def fetch_genshin_topics_with_selenium():
+def fetch_genshin_topics_with_selenium(service, chrome_options):
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    driver.delete_all_cookies()
+
     try:
         driver.get(BASE_URL_GENSHIN)
         wait = WebDriverWait(driver, 30)
@@ -83,7 +87,10 @@ def fetch_genshin_topics_with_selenium():
     finally:
         driver.quit()
 
-def fetch_starrail_topics_with_selenium():
+def fetch_starrail_topics_with_selenium(service, chrome_options):
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    driver.delete_all_cookies()
+
     try:
         driver.get(BASE_URL_STARRAIL)
         wait = WebDriverWait(driver, 30)
@@ -129,7 +136,8 @@ async def on_guild_join(guild):
                 CHANNEL_ID.append(channel.id)
 
 async def check_new_topics():
-    global seen_links
+    global g_seen_links
+    global s_seen_links
     for guild in client.guilds:  # Botが属しているサーバーをすべてチェック
         for channel in guild.text_channels:  # サーバー内のテキストチャンネルをループ
             print(f"チャンネル名: {channel.name}, チャンネルID: {channel.id}")
@@ -140,28 +148,34 @@ async def check_new_topics():
         try:
             topics = await fetch_new_genshin_topics()
             for topic in topics:
-                if topic["link"] not in seen_links:
+                if topic["link"] not in g_seen_links:
                     for channel_id in CHANNEL_ID:
                         channel = client.get_channel(channel_id)
                         if channel:
                             await channel.send("【原神】新着トピック")
                             embed = discord.Embed(title=topic['title'],description=topic['link'])
                             await channel.send(embed=embed)
-                            seen_links.add(topic["link"])
+                            g_seen_links.add(topic["link"])
             topics = await fetch_new_starrail_topics()
             for topic in topics:
-                if topic["link"] not in seen_links:
+                if topic["link"] not in s_seen_links:
                     for channel_id in CHANNEL_ID:
                         channel = client.get_channel(channel_id)
                         if channel:
                             await channel.send("【崩壊：スターレイル】新着トピック")
                             embed = discord.Embed(title=topic['title'],description=topic['link'])
                             await channel.send(embed=embed)
-                            seen_links.add(topic["link"])
+                            s_seen_links.add(topic["link"])
+            # リンクの履歴削除
+            if (len(g_seen_links) > 5):
+                g_seen_links.pop(0)
+            if (len(s_seen_links) > 5):
+                s_seen_links.pop(0)
+
             print("トピック確認完了、待機中...")
         except Exception as e:
             print(f"エラーが発生しました: {e}")
-        await asyncio.sleep(7200)  # ２時間間隔でチェック
+        await asyncio.sleep(10800)  # 3時間間隔でチェック
 
 # メッセージの検知
 @client.event
