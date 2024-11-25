@@ -24,47 +24,44 @@ intents.messages = True
 client = discord.Client(intents=intents)
 seen_links = set()  # 確認済みリンクを保持
 
+def initialize_driver():
+    global driver
+    if driver is None:
+        chrome_binary_path = "/opt/render/project/.render/chrome/opt/google/chrome/chrome"
+        chrome_options = Options()
+        chrome_options.add_argument("--headless=new")
+        chrome_options.add_argument("--lang=ja-JP")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--window-size=1920,1080")
+        chrome_options.binary_location = chrome_binary_path
+        service = Service(ChromeDriverManager(driver_version="131.0.6778.85").install())
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        driver.delete_all_cookies()
+
+def close_driver():
+    global driver
+    if driver is not None:
+        driver.quit()
+        driver = None
+
 # Seleniumで新しいトピックを取得
 async def fetch_new_genshin_topics():
-    chrome_binary_path = "/opt/render/project/.render/chrome/opt/google/chrome/chrome"
-    chrome_options = Options()
-    chrome_options.add_argument("--headless=new")
-    chrome_options.add_argument("--lang=ja-JP")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--window-size=1920,1080")
-    chrome_options.binary_location = chrome_binary_path
-
-    service = Service(ChromeDriverManager(driver_version="131.0.6778.85").install())
-    
+    initialize_driver()
     # Selenium操作を別スレッドで実行
     loop = asyncio.get_event_loop()
-    new_genshin_topics = await loop.run_in_executor(None, fetch_genshin_topics_with_selenium, service, chrome_options)
+    new_genshin_topics = await loop.run_in_executor(None, fetch_genshin_topics_with_selenium)
     return new_genshin_topics
 
 async def fetch_new_starrail_topics():
-    chrome_binary_path = "/opt/render/project/.render/chrome/opt/google/chrome/chrome"
-    chrome_options = Options()
-    chrome_options.add_argument("--headless=new")
-    chrome_options.add_argument("--lang=ja-JP")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--window-size=1920,1080")
-    chrome_options.binary_location = chrome_binary_path
-
-    service = Service(ChromeDriverManager(driver_version="131.0.6778.85").install())
-    
+    initialize_driver()
     # Selenium操作を別スレッドで実行
     loop = asyncio.get_event_loop()
-    new_starrail_topics = await loop.run_in_executor(None, fetch_starrail_topics_with_selenium, service, chrome_options)
+    new_starrail_topics = await loop.run_in_executor(None, fetch_starrail_topics_with_selenium)
     return new_starrail_topics
 
-def fetch_genshin_topics_with_selenium(service, chrome_options):
-    driver = webdriver.Chrome(service=service, options=chrome_options)
-    driver.delete_all_cookies()
-
+def fetch_genshin_topics_with_selenium():
     try:
         driver.get(BASE_URL_GENSHIN)
         wait = WebDriverWait(driver, 30)
@@ -86,10 +83,7 @@ def fetch_genshin_topics_with_selenium(service, chrome_options):
     finally:
         driver.quit()
 
-def fetch_starrail_topics_with_selenium(service, chrome_options):
-    driver = webdriver.Chrome(service=service, options=chrome_options)
-    driver.delete_all_cookies()
-
+def fetch_starrail_topics_with_selenium():
     try:
         driver.get(BASE_URL_STARRAIL)
         wait = WebDriverWait(driver, 30)
@@ -167,7 +161,7 @@ async def check_new_topics():
             print("トピック確認完了、待機中...")
         except Exception as e:
             print(f"エラーが発生しました: {e}")
-        await asyncio.sleep(600)  # 10分間隔でチェック
+        await asyncio.sleep(7200)  # ２時間間隔でチェック
 
 # メッセージの検知
 @client.event
