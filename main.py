@@ -130,12 +130,6 @@ async def on_guild_join(guild):
     else:
         print("システムチャンネルが設定されていません。")
 
-    for guild in client.guilds:  # Botが属しているサーバーをすべてチェック
-        for channel in guild.text_channels:  # サーバー内のテキストチャンネルをループ
-            print(f"チャンネル名: {channel.name}, チャンネルID: {channel.id}")
-            if channel.name == "通知" and channel.id not in CHANNEL_ID:
-                CHANNEL_ID.append(channel.id)
-
 async def check_new_topics():
     #global g_seen_links
     #global s_seen_links
@@ -175,7 +169,7 @@ async def check_new_topics():
             print("トピック確認完了、待機中...")
         except Exception as e:
             print(f"エラーが発生しました: {e}")
-        await asyncio.sleep(10800)  # 3時間間隔でチェック
+        await asyncio.sleep(1800)  # 30間隔でチェック
 
 # メッセージの検知
 @client.event
